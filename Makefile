@@ -11,14 +11,8 @@ DATA 		    = $(wildcard *--*.sql)
 PG_CONFIG   ?= pg_config
 PG91         = $(shell $(PG_CONFIG) --version | grep -qE " 8\.| 9\.0" && echo no || echo yes)
 
-PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
-
-release:
-	git archive --format zip --prefix=$(EXTENSION)-$(EXTVERSION)/ --output $(EXTENSION)-$(EXTVERSION).zip master
-
-.PHONY: release
 
 CPLUSPLUSFLAGS = -W -Wall -O3 -msse4.2 -march=native -DNDEBUG
 CPLUSPLUSFLAGS += $(PG_CPPFLAGS)
@@ -26,9 +20,16 @@ CPLUSPLUSFLAGS += $(PG_CPPFLAGS)
 OCC := $(CC)
 CC = $(CXX)
 
+all: $(EXTENSION)--$(EXTVERSION).sql
+
+$(EXTENSION)--$(EXTVERSION).sql: $(EXTENSION).sql
+	cp $< $@
 
 %.o : %.c
 	$(OCC) $(CPPFLAGS) -fPIC -O3 -msse4.2 -march=native -c -o $@ $<
 
 %.o : %.cpp
 	$(CXX) $(CPLUSPLUSFLAGS) $(CPPFLAGS) -fpic -c -o $@ $<
+  
+dist:
+	git archive --format zip --prefix=$(EXTENSION)-$(DISTVERSION)/ -o $(EXTENSION)-$(DISTVERSION).zip HEAD
