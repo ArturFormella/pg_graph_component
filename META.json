@@ -1,28 +1,29 @@
 {
-  "name": "pg_graph_component",
+  "name": "graph_component",
   "abstract": "A PostgreSQL extension",
-  "description": "This library contains a PostgreSQL extension called pg_graph_component....",
-  "version": "1.0",
+  "description": "This library contains a PostgreSQL extension called graph_component....",
+  "version": "1.0.0",
   "maintainer": [
     "Artur Formella <pg_graph_component@arczi.info>"
   ],
   "license": "mit",
   "provides": {
-    "pg_graph_component": {
-       "abstract": "A PostgreSQL extension for ...",
-       "file": "pg_graph_component--1.0.0.sql",
-       "docfile": "README.md",
-       "version": "1.0"
+    "graph_component": {
+      "abstract": "A PostgreSQL extension for ...",
+      "file": "graph_component--1.0.0.sql",
+      "docfile": "README.md",
+      "version": "1.0.0"
     }
   },
   "meta-spec": {
-   "version": "1.0.0",
-   "url": "http://pgxn.org/meta/spec.txt"
+    "version": "1.0.0",
+    "url": "http://pgxn.org/meta/spec.txt"
   },
   "tags": [
     "math",
-    "arithmetic",
+    "aggregate",
     "arrays",
+    "graphs",
     "vectors"
   ]
 }
