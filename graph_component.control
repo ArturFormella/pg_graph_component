@@ -1,4 +1,4 @@
 comment = 'graph_component'
-default_version = '1.4.0'
+default_version = '1.0.0'
 module_pathname = '$libdir/graph_component'
 relocatable = true
