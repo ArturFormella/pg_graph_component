@@ -1,18 +1,18 @@
 {
   "name": "graph_component",
-  "abstract": "A PostgreSQL extension",
-  "description": "This library contains a PostgreSQL extension called graph_component....",
-  "version": "1.0.0",
+  "abstract": "Compute graph components efficiently",
+  "description": "A PostgreSQL extension to compute graph components on PostgreSQL",
+  "version": "1.0.1",
   "maintainer": [
     "Artur Formella <pg_graph_component@arczi.info>"
   ],
   "license": "mit",
   "provides": {
     "graph_component": {
-      "abstract": "A PostgreSQL extension for ...",
+      "abstract": "Compute graph components",
       "file": "graph_component--1.0.0.sql",
       "docfile": "README.md",
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   },
   "meta-spec": {
@@ -24,6 +24,7 @@
     "aggregate",
     "arrays",
     "graphs",
+    "component",
     "vectors"
   ]
 }
