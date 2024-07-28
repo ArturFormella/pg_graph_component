@@ -141,6 +141,10 @@ Execution Time: 17393.171 ms
 ```
 
 
+Installation:
+```sql
+  pgxn install --sudo -- graph_component
+```
 
 Context:
 ```sql
