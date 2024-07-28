@@ -34,7 +34,7 @@ typedef struct Vertex { // wierzchołek
 
 typedef struct GraphComponentState {  // Stan agregacji
     HTAB *vertices;
-    Vertex *next;
+    struct Vertex *next;
     HASH_SEQ_STATUS hash_seq;
 } GraphComponentState;
 
@@ -375,7 +375,6 @@ get_connected_components(PG_FUNCTION_ARGS) {
     Vertex *vertexEntry;
     Datum *output;
     int size;
-
     if (SRF_IS_FIRSTCALL()) {
         funcctx = SRF_FIRSTCALL_INIT();
         oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
@@ -385,10 +384,19 @@ get_connected_components(PG_FUNCTION_ARGS) {
           SRF_RETURN_DONE(funcctx);
         }
         GraphComponentState *state = (GraphComponentState *) PG_GETARG_POINTER(0);
+        if (state == NULL || state->vertices == NULL) {
+            funcctx->max_calls = 0;
+            funcctx = SRF_PERCALL_SETUP();
+            SRF_RETURN_DONE(funcctx);
+        }
+        //elog(ERROR, "nie zero");
         funcctx->user_fctx = (void *) state;
         funcctx->max_calls = hash_get_num_entries(state->vertices);
         hash_seq_init(&state->hash_seq, state->vertices);
         MemoryContextSwitchTo(oldcontext);
+        if (funcctx->max_calls == 0) {
+          SRF_RETURN_DONE(funcctx);
+        }
     }
 
     funcctx = SRF_PERCALL_SETUP();
