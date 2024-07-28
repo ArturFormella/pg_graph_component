@@ -1,7 +1,6 @@
 /*
 * Author: Artur Formella
 */
-
 #include <postgres.h>
 #include <utils/lsyscache.h>
 #include <utils/array.h>
@@ -21,30 +20,30 @@ PG_FUNCTION_INFO_V1(get_component);
 PG_FUNCTION_INFO_V1(get_component_id);
 
 typedef struct VertexHash {
-    int id;
+  int id;
 } VertexHash;
 
 struct Vertex;
 
 typedef struct Vertex { // wierzchołek
-    int id;
-    struct Vertex* firstItem;
-    struct Vertex* lastItem;
-    struct Vertex* nextItem;
+  int id;
+  struct Vertex* firstItem;
+  struct Vertex* lastItem;
+  struct Vertex* nextItem;
 } Vertex;
 
 typedef struct GraphComponentState {  // Stan agregacji
-    HTAB *vertices;
-    struct Vertex *next;
-    HASH_SEQ_STATUS hash_seq;
+  HTAB *vertices;
+  struct Vertex *next;
+  HASH_SEQ_STATUS hash_seq;
 } GraphComponentState;
 
 void copyLinkedListToStr(Vertex *arr, StringInfo string, int deep) {
   if (arr) {
     appendStringInfo(string, "%d", arr->id);
     if (deep > 10000) {
-       elog(ERROR, "DEEP 1000");
-       return;
+      elog(ERROR, "DEEP 1000");
+      return;
     }
     if (arr->nextItem) {
       appendStringInfoString(string, ",");
@@ -69,10 +68,8 @@ void mergeToFirst(Vertex* A, Vertex* B) {
   if (B->firstItem != B->firstItem->firstItem){
     elog(ERROR, "RR firstItem nie");
   }
-
   StringInfo Astring = makeStringInfo();
   copyLinkedListToStr(A->firstItem, Astring, 1);
-
 */
 /*
   if (LL == RR && LL->id != RR->id) {
@@ -110,7 +107,7 @@ void mergeToFirst(Vertex* A, Vertex* B) {
     LL->lastItem = newLast;
     RR->lastItem = newLast;
 
-      /*
+    /*
     if (A->firstItem->nextItem == B) {
       elog(ERROR, "er (%d, %d)\n(A %s)\n(B %s)\nLL  %d first: %d(%d) last %d \nRR %d first: %d(%d) last %d\nLAST: (%d, %d)\nFIRSTLAST: (%d, %d)",
 
@@ -209,56 +206,56 @@ Vertex * addToIndex(int32 vertexId, GraphComponentState* state) {
 */
 Datum
 graph_components_step_arr(PG_FUNCTION_ARGS) {
-    MemoryContext agg_context;
-    GraphComponentState *state;
-    ArrayType *currentArray;
-    int16 elemTypeWidth;
-    char elemTypeAlignmentCode;
-    int currentLength;
-    int id;
-    int i;
-    bool elemTypeByValue;
-    bool *currentNulls;
-    Datum *currentVals;
-    Vertex *prevVertex;
-    Vertex *currentVertex;
+  MemoryContext agg_context;
+  GraphComponentState *state;
+  ArrayType *currentArray;
+  int16 elemTypeWidth;
+  char elemTypeAlignmentCode;
+  int currentLength;
+  int id;
+  int i;
+  bool elemTypeByValue;
+  bool *currentNulls;
+  Datum *currentVals;
+  Vertex *prevVertex;
+  Vertex *currentVertex;
 
-    if (!AggCheckCallContext(fcinfo, &agg_context)) {
-      elog(ERROR, "graph_components_step_arr called in non-aggregate context");
-    }
+  if (!AggCheckCallContext(fcinfo, &agg_context)) {
+    elog(ERROR, "graph_components_step_arr called in non-aggregate context");
+  }
 
-    if (PG_ARGISNULL(0)) {
-      state = (GraphComponentState *) MemoryContextAlloc(agg_context, sizeof(GraphComponentState)); // O(logN)
-      HASHCTL ctlDistinct;
-      memset(&ctlDistinct, 100, sizeof(ctlDistinct));
-      ctlDistinct.keysize = sizeof(VertexHash);
-      ctlDistinct.entrysize = sizeof(Vertex);
-      ctlDistinct.hcxt = agg_context;
-      state->vertices = hash_create("vertex", 48, &ctlDistinct, HASH_ELEM | HASH_BLOBS);
-      state->next = NULL;
+  if (PG_ARGISNULL(0)) {
+    state = (GraphComponentState *) MemoryContextAlloc(agg_context, sizeof(GraphComponentState)); // O(logN)
+    HASHCTL ctlDistinct;
+    memset(&ctlDistinct, 100, sizeof(ctlDistinct));
+    ctlDistinct.keysize = sizeof(VertexHash);
+    ctlDistinct.entrysize = sizeof(Vertex);
+    ctlDistinct.hcxt = agg_context;
+    state->vertices = hash_create("vertex", 48, &ctlDistinct, HASH_ELEM | HASH_BLOBS);
+    state->next = NULL;
 
-    } else {
-      state = (GraphComponentState *) PG_GETARG_POINTER(0);
-    }
-    if (PG_ARGISNULL(1)) {
-      PG_RETURN_POINTER(state);
-    }
-    currentArray = PG_GETARG_ARRAYTYPE_P(1);
-    if (currentArray == NULL) {
-        PG_RETURN_POINTER(state);
-    }
-    get_typlenbyvalalign(INT4OID, &elemTypeWidth, &elemTypeByValue, &elemTypeAlignmentCode);
-    deconstruct_array(currentArray, INT4OID, elemTypeWidth, elemTypeByValue, elemTypeAlignmentCode, &currentVals, &currentNulls, &currentLength); // O(N)
-
-    for (i = 0; i < currentLength; i++) { // O(N * logN)
-      id = DatumGetInt32(currentVals[i]);
-      currentVertex = addToIndex(id, state);
-      if (i > 0) {   // połącz z poprzednim w arr
-        mergeToFirst(prevVertex, currentVertex);
-      }
-      prevVertex = currentVertex;
-    }
+  } else {
+    state = (GraphComponentState *) PG_GETARG_POINTER(0);
+  }
+  if (PG_ARGISNULL(1)) {
     PG_RETURN_POINTER(state);
+  }
+  currentArray = PG_GETARG_ARRAYTYPE_P(1);
+  if (currentArray == NULL) {
+      PG_RETURN_POINTER(state);
+  }
+  get_typlenbyvalalign(INT4OID, &elemTypeWidth, &elemTypeByValue, &elemTypeAlignmentCode);
+  deconstruct_array(currentArray, INT4OID, elemTypeWidth, elemTypeByValue, elemTypeAlignmentCode, &currentVals, &currentNulls, &currentLength); // O(N)
+
+  for (i = 0; i < currentLength; i++) { // O(N * logN)
+    id = DatumGetInt32(currentVals[i]);
+    currentVertex = addToIndex(id, state);
+    if (i > 0) {   // połącz z poprzednim w arr
+      mergeToFirst(prevVertex, currentVertex);
+    }
+    prevVertex = currentVertex;
+  }
+  PG_RETURN_POINTER(state);
 }
 
 /* Wypełnij array danymi z LinkedList. Złożoność O(N) */
@@ -369,71 +366,70 @@ Datum graph_components_final(PG_FUNCTION_ARGS) {
 */
 Datum
 get_component(PG_FUNCTION_ARGS) {
-
-    FuncCallContext *funcctx;
-    MemoryContext oldcontext;
-    ArrayType  *result;
-    Vertex *vertexEntry;
-    Datum *output;
-    int size;
-    if (SRF_IS_FIRSTCALL()) {
-        funcctx = SRF_FIRSTCALL_INIT();
-        oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
-        if (PG_ARGISNULL(0)){
+  FuncCallContext *funcctx;
+  MemoryContext oldcontext;
+  ArrayType  *result;
+  Vertex *vertexEntry;
+  Datum *output;
+  int size;
+  if (SRF_IS_FIRSTCALL()) {
+      funcctx = SRF_FIRSTCALL_INIT();
+      oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+      if (PG_ARGISNULL(0)){
+        funcctx->max_calls = 0;
+        funcctx = SRF_PERCALL_SETUP();
+        SRF_RETURN_DONE(funcctx);
+      }
+      GraphComponentState *state = (GraphComponentState *) PG_GETARG_POINTER(0);
+      if (state == NULL || state->vertices == NULL) {
           funcctx->max_calls = 0;
           funcctx = SRF_PERCALL_SETUP();
           SRF_RETURN_DONE(funcctx);
-        }
-        GraphComponentState *state = (GraphComponentState *) PG_GETARG_POINTER(0);
-        if (state == NULL || state->vertices == NULL) {
-            funcctx->max_calls = 0;
-            funcctx = SRF_PERCALL_SETUP();
-            SRF_RETURN_DONE(funcctx);
-        }
-        //elog(ERROR, "nie zero");
-        funcctx->user_fctx = (void *) state;
-        funcctx->max_calls = hash_get_num_entries(state->vertices);
-        hash_seq_init(&state->hash_seq, state->vertices);
-        MemoryContextSwitchTo(oldcontext);
-        if (funcctx->max_calls == 0) {
-          SRF_RETURN_DONE(funcctx);
-        }
-    }
-
-    funcctx = SRF_PERCALL_SETUP();
-    GraphComponentState *input = (GraphComponentState *) funcctx->user_fctx;
-
-    if (funcctx->call_cntr < funcctx->max_calls) {
-      do {
-        vertexEntry = (Vertex *) hash_seq_search(&input->hash_seq);    // O(logN)
-        // pomijamy już wypisane komponenty
-      } while (vertexEntry && (vertexEntry->firstItem->nextItem == vertexEntry->firstItem) );   // O(N)
-      if (vertexEntry) {
-        size = countLinkedList(vertexEntry->firstItem, 0);
-        output = (Datum*) palloc(size * sizeof(Datum));
-        copyLinkedListToArray(vertexEntry->firstItem, output, 0, size);
-        result = construct_array(output, size, INT4OID, 4, true, 'i');
-
-        pfree(output);
-
-        // zaznacz żeby już tego wiersza nie wypuszczać
-        vertexEntry->firstItem->nextItem = vertexEntry->firstItem;
-
-        SRF_RETURN_NEXT(funcctx, PointerGetDatum(result));
-      } else {
-        if (input->vertices != NULL) {
-            hash_destroy(input->vertices);
-            input->vertices = NULL;
-        }
+      }
+      //elog(ERROR, "nie zero");
+      funcctx->user_fctx = (void *) state;
+      funcctx->max_calls = hash_get_num_entries(state->vertices);
+      hash_seq_init(&state->hash_seq, state->vertices);
+      MemoryContextSwitchTo(oldcontext);
+      if (funcctx->max_calls == 0) {
         SRF_RETURN_DONE(funcctx);
       }
+  }
+
+  funcctx = SRF_PERCALL_SETUP();
+  GraphComponentState *input = (GraphComponentState *) funcctx->user_fctx;
+
+  if (funcctx->call_cntr < funcctx->max_calls) {
+    do {
+      vertexEntry = (Vertex *) hash_seq_search(&input->hash_seq);    // O(logN)
+      // pomijamy już wypisane komponenty
+    } while (vertexEntry && (vertexEntry->firstItem->nextItem == vertexEntry->firstItem) );   // O(N)
+    if (vertexEntry) {
+      size = countLinkedList(vertexEntry->firstItem, 0);
+      output = (Datum*) palloc(size * sizeof(Datum));
+      copyLinkedListToArray(vertexEntry->firstItem, output, 0, size);
+      result = construct_array(output, size, INT4OID, 4, true, 'i');
+
+      pfree(output);
+
+      // zaznacz żeby już tego wiersza nie wypuszczać
+      vertexEntry->firstItem->nextItem = vertexEntry->firstItem;
+
+      SRF_RETURN_NEXT(funcctx, PointerGetDatum(result));
     } else {
-      if (input->vertices) {
-        hash_seq_term(&input->hash_seq);
+      if (input->vertices != NULL) {
         hash_destroy(input->vertices);
+        input->vertices = NULL;
       }
       SRF_RETURN_DONE(funcctx);
     }
+  } else {
+    if (input->vertices) {
+      hash_seq_term(&input->hash_seq);
+      hash_destroy(input->vertices);
+    }
+    SRF_RETURN_DONE(funcctx);
+  }
 }
 
 /*
