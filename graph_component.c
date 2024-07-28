@@ -16,8 +16,9 @@ PG_MODULE_MAGIC;
 
 PG_FUNCTION_INFO_V1(graph_components_final);
 PG_FUNCTION_INFO_V1(graph_components_step_arr);
-PG_FUNCTION_INFO_V1(get_connected_components);
 PG_FUNCTION_INFO_V1(graph_component_combine);
+PG_FUNCTION_INFO_V1(get_component);
+PG_FUNCTION_INFO_V1(get_component_id);
 
 typedef struct VertexHash {
     int id;
@@ -367,7 +368,7 @@ Datum graph_components_final(PG_FUNCTION_ARGS) {
   Złożoność O(N*logN)
 */
 Datum
-get_connected_components(PG_FUNCTION_ARGS) {
+get_component(PG_FUNCTION_ARGS) {
 
     FuncCallContext *funcctx;
     MemoryContext oldcontext;
@@ -421,8 +422,8 @@ get_connected_components(PG_FUNCTION_ARGS) {
         SRF_RETURN_NEXT(funcctx, PointerGetDatum(result));
       } else {
         if (input->vertices != NULL) {
-            input->vertices = NULL;
             hash_destroy(input->vertices);
+            input->vertices = NULL;
         }
         SRF_RETURN_DONE(funcctx);
       }
@@ -431,6 +432,74 @@ get_connected_components(PG_FUNCTION_ARGS) {
         hash_seq_term(&input->hash_seq);
         hash_destroy(input->vertices);
       }
+      SRF_RETURN_DONE(funcctx);
+    }
+}
+
+/*
+  Funkcja rozpakowująca dane do wierszy.
+  Złożoność O(N*logN)
+*/
+Datum
+get_component_id(PG_FUNCTION_ARGS) {
+
+    FuncCallContext *funcctx;
+    MemoryContext oldcontext;
+    AttInMetadata *attinmeta;
+
+    if (SRF_IS_FIRSTCALL()) {
+      TupleDesc tupdesc;
+      funcctx = SRF_FIRSTCALL_INIT();
+      oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+      if (PG_ARGISNULL(0)){
+        funcctx->max_calls = 0;
+        funcctx = SRF_PERCALL_SETUP();
+        SRF_RETURN_DONE(funcctx);
+      }
+      GraphComponentState *state = (GraphComponentState *) PG_GETARG_POINTER(0);
+      if (state == NULL || state->vertices == NULL) {
+        funcctx->max_calls = 0;
+        funcctx = SRF_PERCALL_SETUP();
+        SRF_RETURN_DONE(funcctx);
+      }
+      //elog(ERROR, "nie zero");
+      funcctx->user_fctx = (void *) state;
+      funcctx->max_calls = hash_get_num_entries(state->vertices);
+
+      /* Create a tuple descriptor for our result type */
+      tupdesc = CreateTemplateTupleDesc(2);
+      TupleDescInitEntry(tupdesc, (AttrNumber) 1, "id", INT4OID, -1, 0);
+      TupleDescInitEntry(tupdesc, (AttrNumber) 2, "component_id", INT4OID, -1, 0);
+
+      funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+
+      hash_seq_init(&state->hash_seq, state->vertices);
+      MemoryContextSwitchTo(oldcontext);
+      if (funcctx->max_calls == 0) {
+        SRF_RETURN_DONE(funcctx);
+      }
+    }
+    Vertex *vertexEntry;
+    Datum values[2];
+    Datum result;
+    bool nulls[2] = {false, false};
+    HeapTuple tuple;
+
+    funcctx = SRF_PERCALL_SETUP();
+    GraphComponentState *input = (GraphComponentState *) funcctx->user_fctx;
+
+    if (funcctx->call_cntr < funcctx->max_calls) {
+      vertexEntry = (Vertex *) hash_seq_search(&input->hash_seq);    // O(logN)
+      values[0] = Int32GetDatum(vertexEntry->id);
+      values[1] = Int32GetDatum(vertexEntry->firstItem->id);
+
+      tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
+      result = HeapTupleGetDatum(tuple);
+
+      SRF_RETURN_NEXT(funcctx, result);
+    } else {
+      hash_seq_term(&input->hash_seq);
+      hash_destroy(input->vertices);
       SRF_RETURN_DONE(funcctx);
     }
 }
