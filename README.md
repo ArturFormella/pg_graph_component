@@ -5,10 +5,12 @@ With this extension you can do this very efficiently. Extension does this on poi
 ### API
 **graph_components(integer[])** RETURNS internal
 
-**get_connected_components(internal)** RETURNS SETOF integer[]
+**get_component(internal)** RETURNS SETOF integer[]
+
+**get_component_id(internal)** RETURNS TABLE(id int4, component_id int4)
 
 Typical usage: 
-get_connected_components(graph_components(array_with_connections))
+get_component(graph_components(array_with_connections))
 array_with_connections can contain a list of integers (id of vertex).
 
 ### EXAMPLE
@@ -16,7 +18,7 @@ Basic example:
 
 ```sql
 SELECT
-  get_connected_components(graph_components(array[1,2,3,4,5]))
+  get_component(graph_components(array[1,2,3,4,5]))
 ```
 Returns:
 ```sql
@@ -25,7 +27,7 @@ Returns:
 
 ```sql
 SELECT
-  get_connected_components(graph_components(connection))
+  get_component(graph_components(connection))
 FROM (values (array[1,2,3,4,5]),
       (array[4,10]),
       (array[10,11]),
@@ -48,7 +50,7 @@ Return components:
 
 ```sql
 SELECT
-  get_connected_components(graph_components(c.connections_array))
+  get_component(graph_components(c.connections_array))
 FROM public.connections c
 ```
 
@@ -60,7 +62,7 @@ SELECT
     x.component
 FROM (
   SELECT
-    get_connected_components(graph_components(c.connections_array))
+    get_component(graph_components(c.connections_array))
   FROM public.connections c
 ) as x(component), unnest (component) as w(vertex)
 ```
@@ -71,7 +73,7 @@ SELECT
     x.list
 FROM (
 SELECT
-  get_connected_components(graph_components(connection))
+  get_component(graph_components(connection))
 FROM (values (array[1,2,3,4,5]),
       (array[4,10]),
       (array[10,11]),
@@ -96,6 +98,35 @@ vertex	component
 192	{192,10000}
 10000	{192,10000}
 ```
+
+get_component_id() - returns the vertex id along with the lowest vertex id from the component.
+
+```sql
+SELECT
+  (get_component_id(graph_components(connection))).*
+FROM (values (array[1,2,3,4,5]),
+      (array[4,10]),
+      (array[10,11]),
+      (array[12,14]),
+      (array[192]),
+      (array[10000,192])
+) k(connection)
+```
+
+Returns:
+```sql
+id	component_id
+12	12
+1	1
+10	1
+11	1
+192	192
+3	1
+14	12
+4	1
+10000	192
+```
+
 
 Example execution plan with 1.5M connections, 1078322 vertices and 239933 graph components
 ```sql
